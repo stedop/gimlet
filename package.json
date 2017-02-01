@@ -1,0 +1,56 @@
+{
+  "name": "gimlet-bot",
+  "version": "1.0.1",
+  "description": "simeple reddit bot post when gimlet shows are live using rss feeds",
+  "main": "index.js",
+  "scripts": {
+    "compile": "babel -q -d dist/ src/",
+    "smoketest": "npm run test -- -g 'smoketest'"
+  },
+  "files": [
+    "dist/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stedop/gimlet.git"
+  },
+  "keywords": [
+    "reddit",
+    "bot",
+    "nodejs"
+  ],
+  "author": "Stephen Dop <dopstephen@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/stedop/gomlet/issues"
+  },
+  "homepage": "https://github.com/stedop/gimlet#readme",
+  "devDependencies": {
+    "babel-cli": "^6.14.0",
+    "babel-plugin-lodash": "^3.2.6",
+    "babel-plugin-transform-async-to-generator": "^6.8.0",
+    "babel-plugin-transform-es2015-arrow-functions": "^6.8.0",
+    "babel-plugin-transform-es2015-block-scoping": "^6.14.0",
+    "babel-plugin-transform-es2015-destructuring": "^6.9.0",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.14.0",
+    "babel-plugin-transform-es2015-parameters": "^6.11.4",
+    "babel-plugin-transform-es2015-spread": "^6.8.0",
+    "babel-plugin-transform-es2015-template-literals": "^6.8.0",
+    "babel-plugin-transform-object-rest-spread": "^6.8.0",
+    "babelify": "^7.3.0",
+    "eslint": "^3.14.1",
+    "eslint-config-google": "^0.7.1"
+  },
+  "dependencies": {
+    "axios": "^0.15.3",
+    "dot": "^1.1.1",
+    "feedme": "^0.3.3",
+    "lodash": "^4.17.4",
+    "node-env-file": "^0.1.8",
+    "request": "^2.79.0",
+    "rss-api": "^1.0.2",
+    "snoowrap": "^1.12.0",
+    "winston": "^2.3.1",
+    "xml2json": "^0.11.0"
+  }
+}

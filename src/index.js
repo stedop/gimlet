@@ -21,15 +21,13 @@ const botConfig = {
     'clientSecret': process.env.clientSecret,
     'refreshToken': process.env.refreshToken,
     'subreddit': process.env.subreddit,
-    'feeds': JSON.parse(process.env.feeds)
+    'feedsFile': __dirname + process.env.feedsFile
 };
 
-const plBot = new bot( botConfig );
-plBot
-    .run()
-    .then(
-        ( completed ) => {
-            logger.log( 'info', completed );
-        }
-    )
-    .catch( logger.log );
+try {
+    const plBot = new bot( botConfig );
+    plBot
+        .run();
+} catch (error) {
+    console.log(error);
+}

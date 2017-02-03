@@ -32,14 +32,15 @@ var botConfig = {
     'clientSecret': process.env.clientSecret,
     'refreshToken': process.env.refreshToken,
     'subreddit': process.env.subreddit,
-    'feeds': JSON.parse(process.env.feeds)
+    'feedsFile': __dirname + process.env.feedsFile
 };
 
-var plBot = new _bot2.default(botConfig);
-plBot.run().then(function (completed) {
-    logger.log('info', completed);
-}).catch(logger.log);
-//# sourceMappingURL=index.js.map
+try {
+    var plBot = new _bot2.default(botConfig);
+    plBot.run();
+} catch (error) {
+    console.log(error);
+}
 //# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map

@@ -4,6 +4,7 @@ import { defaults, each } from "lodash";
 import Snoowrap from "snoowrap";
 import parser from "xml2json";
 import request from "request";
+import fs from "fs";
 
 export default class bot {
 
@@ -17,7 +18,6 @@ export default class bot {
      with an installed app (which does not have a client secret), pass an empty string as your `clientSecret`.
      * @param {string} [refreshToken] A refresh token for your app.
      * @param {string} [subreddit] The subreddit name we are going to be managing
-     * @param {object} [feeds] Onject containting list of xml feeds to parse
      */
     constructor( {
         userAgent,
@@ -25,14 +25,15 @@ export default class bot {
         clientSecret,
         refreshToken,
         subreddit,
-        feeds
+        feedsFile
     } = {} ) {
+
         if ( clientId === undefined || clientSecret === undefined || refreshToken === undefined ) {
             throw new Error( "Reddit Credentials not supplied" );
         }
 
-        if ( feeds === undefined || feeds.length === 0 ) {
-            throw new Error( "No feeds to parse" );
+        if ( feedsFile === undefined ) {
+            throw new Error( "No feeds file deifned" );
         }
 
 
@@ -42,17 +43,20 @@ export default class bot {
             clientSecret,
             refreshToken,
             subreddit,
-            feeds
+            feedsFile
         }, {
             userAgent: null,
             clientId: null,
             clientSecret: null,
             refreshToken: null,
             subbreddit: null,
-            feeds: {}
+            feedsFile: null
         } );
 
+        this.feeds = {};
+        this.completed = {};
         this.__initRedditClient();
+        this.__initFeeds();
     }
 
     __initRedditClient() {
@@ -64,89 +68,59 @@ export default class bot {
         } );
     }
 
-    httpGetAsync( theUrl ) {
-        return new Promise( ( resolve, reject ) => {
-            request( theUrl, ( error, response, body ) => {
-                if ( !error && response.statusCode === 200 ) {
-                    resolve( body );
+    __initFeeds() {
+        this.feeds = require(this.feedsFile);
+    }
+
+    __writeFeeds() {
+        fs.writeFile(this.feedsFile, JSON.stringify(this.feeds), function (err) {
+            if (err) {
+                throw err;
+            }
+        });
+    }
+
+    makePost(post = {}) {
+        return this
+            .redditClient
+            .getSubreddit(this.subreddit)
+            .submitLink(post)
+            .then( ( response ) => {
+                    // according to the docs I should be able to chain this but it doesn't work
+                    this.makeModPost(response);
+                    this.completed[ post.title ] = response.name;
                 }
-
-                reject( error );
-            } );
-        } );
-
+            );
     }
 
-    getFeeds( data = {} ) {
-        data.responses = {};
-        return new Promise( ( resolve, reject ) => {
-            each( this.feeds, ( feed, name ) => {
-                this.httpGetAsync( feed.url ).then( ( response ) => {
-                    let jsonResponse = JSON.parse( parser.toJson( response ) );
-                    data.responses[ name ] = jsonResponse.rss.channel;
-                    resolve( data );
-                }, reject );
-            } );
-        } );
-    }
+    makeModPost() {
 
-    parseFeeds( data = {} ) {
-        data.posts = {};
-        return new Promise( ( resolve, reject ) => {
-            each( data.responses, ( response, name ) => {
-                each( response.item, ( show ) => {
-                    let lastShow = new Date( this.feeds[ name ].lastShow );
-                    let pubDate = new Date( show.pubDate );
-                    if ( pubDate > lastShow ) {
-                        data.posts[ name ] = {
-                            title: response.title + " - " + show.title,
-                            link: show.enclosure.url
-                        };
-                    }
-                } );
-            } );
-
-            resolve( data );
-        } );
-    }
-
-    postNewShows( data = {} ) {
-        let self = this;
-        let completed = {};
-        return new Promise( ( resolve, reject ) => {
-            each( data.posts, function ( post, name ) {
-                self
-                    .redditClient
-                    .getSubreddit(self.subreddit)
-                    .submitLink( {
-                        title: post.title,
-                        url: post.link
-                    } )
-                    .then( ( response ) => {
-                        // according to the docs I should be able to chain this but it doesn't work
-                        self.makeModPost(response);
-                        completed[ post.title ] = response.name;
-                    }, reject
-                );
-
-            } );
-            resolve( completed );
-        } );
-    }
-
-    makeModPost( response ) {
-        this.redditClient
-            .getSubmission(response)
-            .distinguish();
-        this.redditClient
-            .getSubmission(response)
-            .approve();
     }
 
     run() {
-        return this.getFeeds()
-            .then( ( data ) => this.parseFeeds( data ) )
-            .then( ( data ) => this.parseFeeds( data ) )
-            .then( ( data ) => this.postNewShows( data ) );
+        let self = this;
+        each( this.feeds, function ( feed, name ) {
+            request( feed.url, function ( error, response, body ) {
+                if ( !error && response.statusCode === 200 ) {
+                    let jsonResponse = JSON.parse( parser.toJson( body ) );
+                    each( jsonResponse.rss.channel.item, function ( show ) {
+                        let lastShow = new Date( feed.lastShow );
+                        let pubDate = new Date( show.pubDate );
+                        if ( pubDate > lastShow ) {
+                            let post = {
+                                'title': show.title,
+                                'url': show.enclosure.url
+                            };
+                            self.makePost(post);
+                            self.feeds[name].lastShow = show.pubDate;
+                            self.__writeFeeds();
+                        }
+                    });
+
+                } else {
+                    throw error;
+                }
+            } );
+        } );
     }
 }
